@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.g2d.Sprite
 import com.badlogic.gdx.maps.tiled.TmxMapLoader
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer
 import com.badlogic.gdx.math.Vector3
+import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.Stage
@@ -15,7 +16,6 @@ import com.badlogic.gdx.utils.viewport.Viewport
 import com.young.immortal.actor.Player
 import io.reactivex.Observable
 import io.reactivex.functions.BiFunction
-import java.lang.Exception
 import java.util.concurrent.TimeUnit
 
 
@@ -28,15 +28,15 @@ class PracticeStage(viewport: Viewport) : Stage(viewport) {
 
     val camera: OrthographicCamera = OrthographicCamera(viewport.worldWidth, viewport.worldHeight)
     var tiledMapRenderer: OrthogonalTiledMapRenderer
-    var player: Player = Player(camera, Texture("running.png"))
+    var player: Player = Player(camera, Texture("running.png"), Texture("standing.png"))
 
     var cameraX = 0f
     var cameraY = 0f
     var playerX = 400f
     var playerY = 500f
 
-    val mapWidth:Int
-    val mapHeight:Int
+    val mapWidth: Int
+    val mapHeight: Int
 
     val btnLeft: ImageButton = ImageButton(SpriteDrawable(Sprite(Texture("ic.png"))))
     val btnDown: ImageButton = ImageButton(SpriteDrawable(Sprite(Texture("ic.png"))))
@@ -59,11 +59,11 @@ class PracticeStage(viewport: Viewport) : Stage(viewport) {
 
         player.setPosition(playerX, playerY)
         val tiledMap = TmxMapLoader().load("des2.tmx")
-        val w:Int = tiledMap.properties["width"] as Int
-        val tileW:Int = tiledMap.properties["tilewidth"] as Int
+        val w: Int = tiledMap.properties["width"] as Int
+        val tileW: Int = tiledMap.properties["tilewidth"] as Int
         mapWidth = w * tileW
-        val h:Int = tiledMap.properties["height"] as Int
-        val tileH:Int = tiledMap.properties["tileheight"] as Int
+        val h: Int = tiledMap.properties["height"] as Int
+        val tileH: Int = tiledMap.properties["tileheight"] as Int
         mapHeight = h * tileH
         tiledMapRenderer = OrthogonalTiledMapRenderer(tiledMap)
         camera.setToOrtho(false)
@@ -85,6 +85,12 @@ class PracticeStage(viewport: Viewport) : Stage(viewport) {
 
             override fun touchUp(event: InputEvent?, x: Float, y: Float, pointer: Int, button: Int) {
                 isMoving = false
+                stand()
+            }
+
+            override fun exit(event: InputEvent?, x: Float, y: Float, pointer: Int, toActor: Actor?) {
+                isMoving = false
+                stand()
             }
         })
         btnDown.addListener(object : InputListener() {
@@ -96,6 +102,12 @@ class PracticeStage(viewport: Viewport) : Stage(viewport) {
 
             override fun touchUp(event: InputEvent?, x: Float, y: Float, pointer: Int, button: Int) {
                 isMoving = false
+                stand()
+            }
+
+            override fun exit(event: InputEvent?, x: Float, y: Float, pointer: Int, toActor: Actor?) {
+                isMoving = false
+                stand()
             }
         })
         btnRight.addListener(object : InputListener() {
@@ -107,6 +119,12 @@ class PracticeStage(viewport: Viewport) : Stage(viewport) {
 
             override fun touchUp(event: InputEvent?, x: Float, y: Float, pointer: Int, button: Int) {
                 isMoving = false
+                stand()
+            }
+
+            override fun exit(event: InputEvent?, x: Float, y: Float, pointer: Int, toActor: Actor?) {
+                isMoving = false
+                stand()
             }
         })
         btnUp.addListener(object : InputListener() {
@@ -118,75 +136,160 @@ class PracticeStage(viewport: Viewport) : Stage(viewport) {
 
             override fun touchUp(event: InputEvent?, x: Float, y: Float, pointer: Int, button: Int) {
                 isMoving = false
+                stand()
+            }
+
+            override fun exit(event: InputEvent?, x: Float, y: Float, pointer: Int, toActor: Actor?) {
+                isMoving = false
+                stand()
             }
         })
     }
 
     override fun act() {
-//        var offsetX = player.x - playerX
-//        var offsetY = player.y - playerY
-//        camera.position.x = cameraX+offsetX
-//        camera.position.y = cameraY+offsetY
         camera.update()
         tiledMapRenderer.setView(camera)
         tiledMapRenderer.render()
         super.act()
-
-//        println("${tiledMapRenderer.viewBounds.width} ******** ${tiledMapRenderer.viewBounds.width}")
-//        println("Camera Info: ${camera.position.x} -- ${camera.position.y} ** ${camera.viewportWidth} -- ${camera.viewportHeight}")
     }
 
     fun run(direction: Direction) {
         player.run(direction)
         getRunObservable(direction)
-                .repeatUntil{!isPlayerMoving()}
+                .repeatUntil { !isPlayerMoving() }
                 .subscribe(
                         { },
-                        { println(it.message)}
+                        { println(it.message) }
                 )
     }
 
-    var offsetX:Float = 0f
-    var offsetY:Float = 0f
+    fun stand() {
+        player.stand()
+    }
+
+    var offsetX: Float = 0f
+    var offsetY: Float = 0f
+    var playerOffsetX: Float = 0f
+    var playerOffsetY: Float = 0f
+    val step = 2f
     fun getRunObservable(direction: Direction): Observable<Vector3> {
-        val run:Observable<Vector3> = when (direction) {
+        if (true) {
+            val test = Observable.create<Vector3> {
+                var isPlayerMove: Boolean = when (direction) {
+                    Direction.Left -> player.x > viewport.worldWidth / 2 - player.width/2 || (camera.position.x <= viewport.worldWidth / 2 && player.x>0)
+                    Direction.Right -> player.x < viewport.worldWidth / 2 - player.width/2 || (camera.position.x + viewport.worldWidth / 2 >= mapWidth && player.x<viewport.worldWidth-player.width)
+                    Direction.Down -> player.y > viewport.worldHeight / 2 - player.height/2 || (camera.position.y <= viewport.worldHeight / 2 && player.y>0)
+                    Direction.Up -> player.y < viewport.worldHeight / 2 - player.height/2 || (camera.position.y + viewport.worldHeight / 2 >= mapHeight && player.y<viewport.worldHeight-player.height)
+                    else -> false
+                }
+
+                var outOfMap: Boolean = when (direction) {
+                    Direction.Left -> camera.position.x <= viewport.worldWidth / 2
+                    Direction.Right -> camera.position.x + viewport.worldWidth / 2 >= mapWidth
+                    Direction.Down -> camera.position.y <= viewport.worldHeight / 2
+                    Direction.Up -> camera.position.y + viewport.worldHeight / 2 >= mapHeight
+                    else -> false
+                }
+                if (!isPlayerMove) {
+                    playerOffsetX = 0f
+                    playerOffsetY = 0f
+                    if (!outOfMap){
+                        offsetX = when (direction) {
+                            Direction.Left -> -step
+                            Direction.Right -> step
+                            else -> 0f
+                        }
+                        offsetY = when (direction) {
+                            Direction.Down -> -step
+                            Direction.Up -> step
+                            else -> 0f
+                        }
+                    }
+                } else {
+                    offsetX = 0f
+                    offsetY = 0f
+                    playerOffsetX = when (direction) {
+                        Direction.Left -> -step
+                        Direction.Right -> step
+                        else -> 0f
+                    }
+                    playerOffsetY = when (direction) {
+                        Direction.Down -> -step
+                        Direction.Up -> step
+                        else -> 0f
+                    }
+                }
+                player.moveBy(playerOffsetX, playerOffsetY)
+                camera.position.add(offsetX, offsetY, 0f)
+                it.onNext(camera.position)
+                it.onComplete()
+            }
+            return Observable.zip(test, Observable.timer(20, TimeUnit.MILLISECONDS),
+                    BiFunction { t1: Vector3, t2: Long -> t1 })
+        }
+
+
+        val run: Observable<Vector3> = when (direction) {
             Direction.Left -> Observable.create({
-                offsetX = -1f
-                if (camera.position.x<=viewport.worldWidth/2){
+                if (player.x > viewport.worldWidth / 2) {
+                    playerOffsetX = -step
+                    playerOffsetY = 0f
+                    offsetX = 0f
+                    offsetY = 0f
+                } else {
+                    offsetX = -step
+                    offsetY = 0f
+                }
+                if (camera.position.x <= viewport.worldWidth / 2) {
                     offsetX = 0f
                 }
-                println("${camera.position.x}--${camera.position.y}")
-                camera.position.add(offsetX, 0f, 0f)
+                if (offsetX == 0f) {
+                    if (player.x > 0) {
+                        playerOffsetX = -step
+                    } else {
+                        playerOffsetX = 0f
+                    }
+                    playerOffsetY = 0f
+                } else {
+                    playerOffsetX = 0f
+                    playerOffsetY = 0f
+                }
+                println("Player : ${player.x}--${player.y} ===> $playerOffsetX -- $playerOffsetY")
+                player.moveBy(playerOffsetX, playerOffsetY)
+                camera.position.add(offsetX, offsetY, 0f)
                 it.onNext(camera.position)
                 it.onComplete()
             })
             Direction.Down -> Observable.create({
-                offsetY = -1f
-                if (camera.position.y<=viewport.worldHeight/2){
+                offsetY = -step
+                offsetX = 0f
+                if (camera.position.y <= viewport.worldHeight / 2) {
                     offsetY = 0f
                 }
                 println("${camera.position.x}--${camera.position.y}")
-                camera.position.add(0f, offsetY, 0f)
+                camera.position.add(offsetX, offsetY, 0f)
                 it.onNext(camera.position)
                 it.onComplete()
             })
             Direction.Right -> Observable.create({
-                offsetX = 1f
-                if (camera.position.x+viewport.worldWidth/2>=mapWidth){
+                offsetX = step
+                offsetY = 0f
+                if (camera.position.x + viewport.worldWidth / 2 >= mapWidth) {
                     offsetX = 0f
                 }
                 println("${camera.position.x}--${camera.position.y}")
-                camera.position.add(offsetX, 0f, 0f)
+                camera.position.add(offsetX, offsetY, 0f)
                 it.onNext(camera.position)
                 it.onComplete()
             })
             Direction.Up -> Observable.create({
-                offsetY = 1f
-                if (camera.position.y+viewport.worldHeight/2>=mapHeight){
+                offsetY = step
+                offsetX = 0f
+                if (camera.position.y + viewport.worldHeight / 2 >= mapHeight) {
                     offsetY = 0f
                 }
                 println("${camera.position.x}--${camera.position.y}")
-                camera.position.add(0f, offsetY, 0f)
+                camera.position.add(offsetX, offsetY, 0f)
                 it.onNext(camera.position)
                 it.onComplete()
             })
@@ -197,28 +300,11 @@ class PracticeStage(viewport: Viewport) : Stage(viewport) {
             })
         }
         return Observable.zip(run, Observable.timer(20, TimeUnit.MILLISECONDS),
-                BiFunction{t1: Vector3, t2: Long ->  t1})
+                BiFunction { t1: Vector3, t2: Long -> t1 })
     }
 
     fun isPlayerMoving(): Boolean {
 //        println("isPlayerMoving? $isMoving")
         return isMoving
-    }
-}
-
-class InputEventListener : InputListener() {
-    override fun touchUp(event: InputEvent?, x: Float, y: Float, pointer: Int, button: Int) {
-        println("touchUp")
-        super.touchUp(event, x, y, pointer, button)
-    }
-
-    override fun touchDown(event: InputEvent?, x: Float, y: Float, pointer: Int, button: Int): Boolean {
-        println("touchDown")
-        return true
-    }
-
-    override fun touchDragged(event: InputEvent?, x: Float, y: Float, pointer: Int) {
-        println("touchDragged")
-        super.touchDragged(event, x, y, pointer)
     }
 }
